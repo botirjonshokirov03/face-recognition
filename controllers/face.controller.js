@@ -34,7 +34,7 @@ const verifyFace = async (req, res) => {
         .json({ success: false, error: "User or embedding not found" });
     }
 
-    const newEmbedding = await generateEmbeddingFromImage(buffer); // use buffer
+    const newEmbedding = await generateEmbeddingFromImage(buffer);
     const { isMatch, similarity } = compareEmbeddings(
       user.faceEmbedding,
       newEmbedding

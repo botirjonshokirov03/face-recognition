@@ -12,27 +12,25 @@ async function generateEmbeddingFromImage(buffer) {
   return embedding;
 }
 
-function normalizeEmbedding(embed) {
-  const norm = Math.sqrt(embed.reduce((sum, val) => sum + val * val, 0));
-  return embed.map((val) => val / norm);
-}
-
-function compareEmbeddings(embed1, embed2, threshold = 0.95) {
+function compareEmbeddings(embed1, embed2, threshold = 0.7) {
   if (!embed1 || !embed2 || embed1.length !== 128 || embed2.length !== 128) {
-    throw new Error("Embeddings must both be 128-dimensional");
+    throw new Error("Embeddings must be 128-dimensional");
   }
 
-  const norm1 = normalizeEmbedding(embed1);
-  const norm2 = normalizeEmbedding(embed2);
+  let sumSquared = 0;
+  for (let i = 0; i < embed1.length; i++) {
+    sumSquared += Math.pow(embed1[i] - embed2[i], 2);
+  }
+  const euclideanDistance = Math.sqrt(sumSquared);
 
-  const dot = norm1.reduce((sum, a, i) => sum + a * norm2[i], 0);
-  const similarity = dot;
+  const similarityPercentage = Math.max(0, 100 - euclideanDistance * 100);
 
-  console.log("Cosine similarity:", similarity);
+  console.log(`Similarity: ${similarityPercentage.toFixed(2)}%`);
 
   return {
-    isMatch: similarity >= threshold,
-    similarity: parseFloat((similarity * 100).toFixed(2)),
+    isMatch: similarityPercentage >= threshold * 100,
+    similarity: parseFloat(similarityPercentage.toFixed(2)),
+    euclideanDistance: parseFloat(euclideanDistance.toFixed(4)),
   };
 }
 
