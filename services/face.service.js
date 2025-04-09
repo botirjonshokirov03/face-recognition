@@ -1,3 +1,6 @@
+const axios = require("axios");
+const FormData = require("form-data");
+
 const User = require("../models/User");
 const { getFaceEmbeddingFromBuffer } = require("./face.embedder");
 
@@ -34,8 +37,24 @@ function compareEmbeddings(embed1, embed2, threshold = 0.7) {
   };
 }
 
+async function checkLivenessFromPythonAPI(buffer) {
+  const form = new FormData();
+  form.append("image", buffer, {
+    filename: "face.jpg",
+    contentType: "image/jpeg",
+  });
+
+  const res = await axios.post("http://localhost:5000/liveness", form, {
+    headers: form.getHeaders(),
+    timeout: 5000, // optional
+  });
+
+  return res.data.result;
+}
+
 module.exports = {
   generateAndSaveEmbedding,
   generateEmbeddingFromImage,
   compareEmbeddings,
+  checkLivenessFromPythonAPI,
 };
