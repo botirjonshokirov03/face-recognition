@@ -2,6 +2,7 @@ const {
   generateAndSaveEmbedding,
   generateEmbeddingFromImage,
   compareEmbeddings,
+  checkLivenessFromPythonAPI,
 } = require("../services/face.service");
 
 const User = require("../models/User");
@@ -27,11 +28,24 @@ const verifyFace = async (req, res) => {
   const buffer = req.file.buffer;
 
   try {
+    const liveness = await checkLivenessFromPythonAPI(buffer);
+    const isReal = liveness?.is_real === true;
+    const spoofScore = parseFloat(liveness?.antispoof_score) || 0;
+
+    if (!isReal || spoofScore < 0.8) {
+      return res.json({
+        result: "Liveness check failed",
+        reason: !isReal ? "Spoof likely" : "Antispoof score too low",
+        liveness,
+      });
+    }
+
     const user = await User.findById(userId);
     if (!user || !user.faceEmbedding) {
-      return res
-        .status(404)
-        .json({ success: false, error: "User or embedding not found" });
+      return res.status(404).json({
+        success: false,
+        error: "User or embedding not found",
+      });
     }
 
     const newEmbedding = await generateEmbeddingFromImage(buffer);
@@ -40,9 +54,10 @@ const verifyFace = async (req, res) => {
       newEmbedding
     );
 
-    res.json({
+    return res.json({
       result: isMatch ? "Verified" : "Not Verified",
       similarity,
+      liveness,
     });
   } catch (error) {
     console.error("Verification error:", error.message);

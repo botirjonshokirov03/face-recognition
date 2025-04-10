@@ -1,3 +1,7 @@
+const axios = require("axios");
+const FormData = require("form-data");
+require("dotenv").config();
+
 const User = require("../models/User");
 const { getFaceEmbeddingFromBuffer } = require("./face.embedder");
 
@@ -34,8 +38,27 @@ function compareEmbeddings(embed1, embed2, threshold = 0.7) {
   };
 }
 
+async function checkLivenessFromPythonAPI(buffer) {
+  const form = new FormData();
+  form.append("image", buffer, {
+    filename: "face.jpg",
+    contentType: "image/jpeg",
+  });
+
+  const url =
+    process.env.PYTHON_LIVENESS_API || "http://localhost:5000/liveness";
+
+  const res = await axios.post(url, form, {
+    headers: form.getHeaders(),
+    timeout: 5000,
+  });
+
+  return res.data;
+}
+
 module.exports = {
   generateAndSaveEmbedding,
   generateEmbeddingFromImage,
   compareEmbeddings,
+  checkLivenessFromPythonAPI,
 };
