@@ -21,7 +21,7 @@ async function loadModels() {
 
 function l2Normalize(vector) {
   const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0));
-  if (magnitude === 0) return vector; // avoid division by zero
+  if (magnitude === 0) return vector;
   return vector.map((val) => val / magnitude);
 }
 

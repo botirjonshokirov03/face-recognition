@@ -1,5 +1,6 @@
 const axios = require("axios");
 const FormData = require("form-data");
+require("dotenv").config();
 
 const User = require("../models/User");
 const { getFaceEmbeddingFromBuffer } = require("./face.embedder");
@@ -44,12 +45,15 @@ async function checkLivenessFromPythonAPI(buffer) {
     contentType: "image/jpeg",
   });
 
-  const res = await axios.post("http://localhost:5000/liveness", form, {
+  const url =
+    process.env.PYTHON_LIVENESS_API || "http://localhost:5000/liveness";
+
+  const res = await axios.post(url, form, {
     headers: form.getHeaders(),
-    timeout: 5000, // optional
+    timeout: 5000,
   });
 
-  return res.data.result;
+  return res.data;
 }
 
 module.exports = {

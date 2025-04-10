@@ -28,23 +28,24 @@ const verifyFace = async (req, res) => {
   const buffer = req.file.buffer;
 
   try {
-    // 👉 1. Check liveness from Python API
     const liveness = await checkLivenessFromPythonAPI(buffer);
+    const isReal = liveness?.is_real === true;
+    const spoofScore = parseFloat(liveness?.antispoof_score) || 0;
 
-    // If not confidently real, block
-    if (!liveness || liveness.result !== "real" || liveness.confidence < 0.8) {
+    if (!isReal || spoofScore < 0.8) {
       return res.json({
-        result: "Fake Face Detected",
+        result: "Liveness check failed",
+        reason: !isReal ? "Spoof likely" : "Antispoof score too low",
         liveness,
       });
     }
 
-    // 👉 2. Proceed with embedding match
     const user = await User.findById(userId);
     if (!user || !user.faceEmbedding) {
-      return res
-        .status(404)
-        .json({ success: false, error: "User or embedding not found" });
+      return res.status(404).json({
+        success: false,
+        error: "User or embedding not found",
+      });
     }
 
     const newEmbedding = await generateEmbeddingFromImage(buffer);
@@ -53,7 +54,7 @@ const verifyFace = async (req, res) => {
       newEmbedding
     );
 
-    res.json({
+    return res.json({
       result: isMatch ? "Verified" : "Not Verified",
       similarity,
       liveness,
