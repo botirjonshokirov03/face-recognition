@@ -7,25 +7,30 @@ const {
 
 const User = require("../models/User");
 
-const uploadFace = async (req, res) => {
-  const { name } = req.body;
-  const buffer = req.file.buffer;
+const createUser = async (req, res) => {
+  const { name, email } = req.body;
+  const buffer = req.file?.buffer;
 
   try {
-    const result = await generateAndSaveEmbedding(name, buffer);
-    res.json({ success: true, user: result });
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return res.status(400).json({ error: "Email already exists" });
+    }
+
+    const user = await generateAndSaveEmbedding(name, email, buffer);
+
+    user.email = email;
+    await user.save();
+
+    res.json({ success: true, user });
   } catch (error) {
-    const isDuplicate = error.message.includes("E11000");
-    res.status(400).json({
-      success: false,
-      error: isDuplicate ? "Name already exists" : error.message,
-    });
+    res.status(500).json({ error: error.message });
   }
 };
 
-const verifyFace = async (req, res) => {
-  const { userId } = req.body;
-  const buffer = req.file.buffer;
+const verifyUser = async (req, res) => {
+  const { email } = req.body;
+  const buffer = req.file?.buffer;
 
   try {
     const liveness = await checkLivenessFromPythonAPI(buffer);
@@ -40,11 +45,11 @@ const verifyFace = async (req, res) => {
       });
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findOne({ email });
     if (!user || !user.faceEmbedding) {
       return res.status(404).json({
         success: false,
-        error: "User or embedding not found",
+        error: "User not found",
       });
     }
 
@@ -65,7 +70,29 @@ const verifyFace = async (req, res) => {
   }
 };
 
-module.exports = {
-  uploadFace,
-  verifyFace,
+const getAllUsers = async (req, res) => {
+  const users = await User.find();
+  res.json(users);
 };
+
+const updateUser = async (req, res) => {
+  const updated = await User.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+  });
+  res.json(updated);
+};
+
+const deleteUser = async (req, res) => {
+  await User.findByIdAndDelete(req.params.id);
+  res.json({ success: true });
+};
+
+const userControllers = {
+  createUser,
+  verifyUser,
+  getAllUsers,
+  updateUser,
+  deleteUser,
+};
+
+module.exports = userControllers;

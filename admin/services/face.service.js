@@ -5,9 +5,9 @@ require("dotenv").config();
 const User = require("../models/User");
 const { getFaceEmbeddingFromBuffer } = require("./face.embedder");
 
-async function generateAndSaveEmbedding(name, buffer) {
+async function generateAndSaveEmbedding(name, email, buffer) {
   const embedding = await getFaceEmbeddingFromBuffer(buffer);
-  const user = await User.create({ name, faceEmbedding: embedding });
+  const user = await User.create({ name, email, faceEmbedding: embedding });
   return user;
 }
 
